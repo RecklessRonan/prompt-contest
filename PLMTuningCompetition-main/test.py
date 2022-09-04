@@ -29,6 +29,8 @@ for seed in [42]:
     np.random.seed(seed)
     best = torch.load(
         f'./results/{task_name}/{seed}/best.pt').to(device).view(50, -1)
+    # print(best.shape)
+    # 对test set的句子添加离散模板
 
     def sentence_fn(test_data):
         """
@@ -42,8 +44,16 @@ for seed in [42]:
         return test_data + post_str
         # return pre_str + test_data + middle_str + test_data
 
+    # 适用于在embedding层之后加入的soft prompt
+    # embedding shape: <batch_size, seq_len, hidden_size>
+    # attention mask shape: <batch_size, seq_len>
+    # best shape: <50, hidden_size>
+    # prepad shape: <1, hidden_size>
+    # pospad shape: <seq_len-51, hidden_size>
+    # torch.cat([prepad, best, pospad]) shape: <seq_len, hidden_size>
     def embedding_and_attention_mask_fn(embedding, attention_mask):
         # res = torch.cat([init_prompt[:-5, :], input_embed, init_prompt[-5:, :]], dim=0)
+        print('embedding.shape', embedding.shape)
         prepad = torch.zeros(size=(1, 1024), device=device)
         pospad = torch.zeros(
             size=(embedding.size(1) - 51, 1024), device=device)
@@ -52,7 +62,7 @@ for seed in [42]:
     predictions = torch.tensor([], device=device)
     for res, _, _ in test_api(
         sentence_fn=sentence_fn,
-        # embedding_and_attention_mask_fn=embedding_and_attention_mask_fn,
+        embedding_and_attention_mask_fn=embedding_and_attention_mask_fn,
         # embedding_and_attention_mask_fn=None,
         test_data_path=f'./test_datasets/{task_name}/encrypted.pth',
         task_name=task_name,
