@@ -1,0 +1,6 @@
+transformers==4.1.1
+datasets
+fastNLP
+cma
+sklearn
+cryptography
